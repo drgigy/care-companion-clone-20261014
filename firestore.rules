@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn(){return request.auth != null;}
+    function profile(){return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data;}
+    function staff(){return signedIn() && profile().role == 'staff';}
+    match /profiles/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && resource.data.role == 'room'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['room'])
+        && request.resource.data.room is string
+        && request.resource.data.room.size() > 0
+        && request.resource.data.room.size() <= 12;
+      allow create, delete: if false;
+    }
+    match /requests/{id} {
+      allow read: if signedIn() && (staff() || resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn() && profile().role == 'room'
+        && request.resource.data.keys().hasAll(['room','category','summary','patientLanguage','status','ownerUid','createdAt','updatedAt','acknowledgedAt','acknowledgedByEmployeeId','completedAt','completedByName','completedByEmployeeId'])
+        && request.resource.data.keys().hasOnly(['room','ward','patientName','uhid','category','summary','patientLanguage','status','ownerUid','createdAt','updatedAt','acknowledgedAt','acknowledgedByEmployeeId','completedAt','completedByName','completedByEmployeeId'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.room == profile().room
+        && request.resource.data.category in ['nursing','food','housekeeping','engineering','ipBilling','insurance','it','guestRelations']
+        && request.resource.data.patientLanguage in ['english','malayalam','arabic','other']
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() > 0 && request.resource.data.summary.size() <= 500
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.acknowledgedAt == null
+        && request.resource.data.acknowledgedByEmployeeId == null
+        && request.resource.data.completedAt == null
+        && request.resource.data.completedByName == null
+        && request.resource.data.completedByEmployeeId == null;
+      allow update: if staff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','acknowledgedAt','acknowledgedByEmployeeId'])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.acknowledgedAt == request.time
+        && request.resource.data.acknowledgedByEmployeeId is string
+        && request.resource.data.acknowledgedByEmployeeId.size() > 0
+        && request.resource.data.acknowledgedByEmployeeId.size() <= 40
+        && resource.data.status == 'new'
+        && request.resource.data.status == 'in-progress'
+        && request.resource.data.completedAt == null;
+      allow update: if signedIn()
+        && profile().role == 'room'
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','completedAt','completedByName','completedByEmployeeId'])
+        && request.resource.data.updatedAt == request.time
+        && resource.data.status == 'in-progress'
+        && request.resource.data.status == 'completed'
+        && request.resource.data.completedAt == request.time
+        && request.resource.data.completedByName is string
+        && request.resource.data.completedByName.size() > 0
+        && request.resource.data.completedByName.size() <= 80
+        && request.resource.data.completedByEmployeeId is string
+        && request.resource.data.completedByEmployeeId.size() > 0
+        && request.resource.data.completedByEmployeeId.size() <= 40;
+      allow delete: if false;
+    }
+    match /{document=**}{allow read, write: if false;}
+  }
+}
