@@ -5,7 +5,7 @@ import {getFirestore} from 'firebase-admin/firestore';
 import {GoogleGenAI} from '@google/genai';
 import {conversationScript,requestTool,endConversationTool} from './script.js';
 initializeApp();const db=getFirestore();const geminiKey=defineSecret('GEMINI_API_KEY');
-const liveModel='gemini-2.5-flash-native-audio-preview-12-2025';
+const liveModel='gemini-3.8-live';
 const liveVoice='Aoede';
 // Set ALLOWED_ORIGINS to the exact production frontend origin at deployment.
 const origins=defineString('ALLOWED_ORIGINS',{default:'http://localhost:8765'});
