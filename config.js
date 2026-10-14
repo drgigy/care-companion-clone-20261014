@@ -1,11 +1,11 @@
 // Public Firebase web config belongs here. NEVER place a permanent AI API key here.
 export const config = {
-  mode: 'demo',
+  mode: 'firebase',
   firebase: {
-    apiKey: 'YOUR_NEW_FIREBASE_WEB_API_KEY',
-    authDomain: 'YOUR_NEW_PROJECT_ID.firebaseapp.com',
-    projectId: 'YOUR_NEW_PROJECT_ID',
-    appId: 'YOUR_NEW_FIREBASE_WEB_APP_ID'
+    apiKey: 'AIzaSyCEW2psridgatPCOJX5KOJIvI1sFT5XcXk',
+    authDomain: 'care-companion-clone-20261014.firebaseapp.com',
+    projectId: 'care-companion-clone-20261014',
+    appId: '1:465952796443:web:9b60df63cfbe9804feadbe'
   },
   functionsRegion: 'asia-south1'
 };

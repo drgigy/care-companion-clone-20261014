@@ -6,15 +6,16 @@ Prepared on 2026-10-14.
 
 - Copied the app source into a clean repository root.
 - Preserved GitHub Pages workflow, Firebase rules, functions, tests, and assets.
-- Sanitized `config.js` so the clone starts in demo mode and does not point at the original Firebase project.
+- Created new Firebase project `care-companion-clone-20261014`.
+- Created Firestore Native database `(default)` in `care-companion-clone-20261014`.
+- Deployed Firestore rules to the new project.
+- Created Firebase Web app `Care Companion Web`.
+- Updated `config.js` and `.firebaserc` so the clone points at the new Firebase project only.
 
 ## Pending Account-Specific Work
 
 - Create a new GitHub repository.
-- Create a new Firebase/Firestore project.
-- Add the new Firebase web app config to `config.js`.
-- Create `.firebaserc` for the new project.
 - Configure Firebase Auth users and Firestore `profiles` documents.
 - Store the Gemini API key in Secret Manager.
-- Deploy rules and functions.
+- Configure `functions/.env` and deploy functions.
 - Enable GitHub Pages.
