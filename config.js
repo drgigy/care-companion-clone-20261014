@@ -2,10 +2,10 @@
 export const config = {
   mode: 'firebase',
   firebase: {
-    apiKey: 'AIzaSyCEW2psridgatPCOJX5KOJIvI1sFT5XcXk',
-    authDomain: 'care-companion-clone-20261014.firebaseapp.com',
-    projectId: 'care-companion-clone-20261014',
-    appId: '1:465952796443:web:9b60df63cfbe9804feadbe'
+    apiKey: 'AIzaSyC_r4eJ5Zb7WOChDjXfMLqztj0sC-HYXb0',
+    authDomain: 'care-companion-mumbai-20261014.firebaseapp.com',
+    projectId: 'care-companion-mumbai-20261014',
+    appId: '1:1008066587392:web:b9b21bca55b81b369ca1e5'
   },
   functionsRegion: 'asia-south1'
 };
