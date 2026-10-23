@@ -109,7 +109,18 @@ $('staff-form').onsubmit=async e=>{e.preventDefault();$('staff-error').textConte
 store.subscribe(items=>{for(const r of items.filter(r=>r.room===store.profile?.room)){const previous=requestState.get(r.id);if(requestLoaded&&previous==='new'&&r.status==='in-progress'){toast(acknowledgementMessage());speakAcknowledgement();}}requestState=new Map(items.map(r=>[r.id,r.status]));requestLoaded=true;renderPatientRequests();if($('staff-dialog').open)renderStaffRequests();});
 function fillSettings(){syncSettingsToUI();$('new-pin').value='';$('confirm-pin').value='';}
 const initialize=setupAccount(store,(profile)=>{if(profile&&!store.demo)warmVoice();fillSettings();$('start').disabled=!profile;if(!profile)$('patient-requests').replaceChildren();else store.emit();});
-$('login-form').addEventListener('submit',event=>{if(store.profile&&$('new-pin').value&&$('new-pin').value!==$('confirm-pin').value){event.preventDefault();event.stopImmediatePropagation();$('login-error').textContent='New PIN does not match.';return;}if(store.profile&&$('new-pin').value)settings.pin=$('new-pin').value;settings={...settings,ward:$('ward-unit').value.trim()||'Ward',patientName:$('patient-name').value.trim(),uhid:$('patient-uhid').value.trim(),language:$('setting-language').value,display:$('setting-display').value,nightStart:$('night-start').value,nightEnd:$('night-end').value};settings=saveTabletSettings(settings);syncSettingsToUI();},true);
+$('login-form').addEventListener('submit',event=>{
+  // PIN unlock and sign-in must not save the hidden settings form.
+  if(!store.profile||$('settings-grid').hidden)return;
+  if($('new-pin').value&&$('new-pin').value!==$('confirm-pin').value){
+    event.preventDefault();event.stopImmediatePropagation();$('login-error').textContent='New PIN does not match.';return;
+  }
+  if($('new-pin').value)settings.pin=$('new-pin').value;
+  settings={...settings,ward:$('ward-unit').value.trim()||'Ward',patientName:$('patient-name').value.trim(),uhid:$('patient-uhid').value.trim(),language:$('setting-language').value,display:$('setting-display').value,nightStart:$('night-start').value,nightEnd:$('night-end').value};
+  settings=saveTabletSettings(settings);
+  // Keep the edited room intact for setupAccount's save handler. Its successful
+  // changeRoom callback refreshes the screen after the room has been persisted.
+},true);
 updateTheme();setInterval(updateTheme,30000);
 initialize().catch(error=>{toast(error.message);$('connection').textContent='Setup error';$('start').disabled=true;});
 window.addEventListener('pagehide',end);
