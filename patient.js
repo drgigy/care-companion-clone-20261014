@@ -1,11 +1,11 @@
 import {CareStore,categories,statuses,$,toast,escapeHTML,guessCategory,setupAccount,loadTabletSettings,saveTabletSettings} from './shared.js';
-import {LiveCompanion} from './voice.js';
-const store=new CareStore('patient');let active=false,live=null,starting=false,autoEndTimer=null,requestLoaded=false,requestState=new Map(),selectedCompletionId=null,settings=loadTabletSettings(),notificationAudio=null;
+import {LiveCompanion} from './voice.js?v=rajagiri-room-20261023';
+const store=new CareStore('patient');let active=false,live=null,starting=false,startAttempt=0,autoEndTimer=null,requestLoaded=false,requestState=new Map(),selectedCompletionId=null,settings=loadTabletSettings(),notificationAudio=null;
 const langText={
-  auto:{tap:'സംസാരിക്കാൻ ഇവിടെ അമർത്തുക',sub:'നഴ്സിനെ വിളിക്കാനോ, ഭക്ഷണം, മുറി വൃത്തിയാക്കൽ, അക്കൗണ്ട്, പരാതികൾ അല്ലെങ്കിൽ അഭ്യർത്ഥനകൾ എന്നിവ അറിയിക്കാനോ ഇവിടെ പറയാം.',help:[],emergency:'അടിയന്തര സാഹചര്യങ്ങളിൽ Nurse Call ബട്ടൺ അമർത്തുക.',requests:'നിങ്ങളുടെ ആവശ്യങ്ങൾ'},
-  english:{tap:'Tap here to speak',sub:'Speak here to call a nurse, request food, room cleaning, accounts, complaints, or other requests.',help:[],emergency:'For emergencies, press the Nurse Call button.',requests:'Your requests'},
-  malayalam:{tap:'സംസാരിക്കാൻ ഇവിടെ അമർത്തുക',sub:'നഴ്സിനെ വിളിക്കാനോ, ഭക്ഷണം, മുറി വൃത്തിയാക്കൽ, അക്കൗണ്ട്, പരാതികൾ അല്ലെങ്കിൽ അഭ്യർത്ഥനകൾ എന്നിവ അറിയിക്കാനോ ഇവിടെ പറയാം.',help:[],emergency:'അടിയന്തര സാഹചര്യങ്ങളിൽ Nurse Call ബട്ടൺ അമർത്തുക.',requests:'നിങ്ങളുടെ ആവശ്യങ്ങൾ'},
-  arabic:{tap:'اضغط هنا للتحدث',sub:'تحدث هنا لطلب ممرضة أو طعام أو تنظيف الغرفة أو الحسابات أو الشكاوى أو أي طلب آخر.',help:[],emergency:'في الحالات الطارئة، اضغط زر Nurse Call.',requests:'طلباتك'}
+  auto:{sub:'നഴ്സിനെ വിളിക്കാനോ, ഭക്ഷണം, മുറി വൃത്തിയാക്കൽ, അക്കൗണ്ട്, പരാതികൾ അല്ലെങ്കിൽ അഭ്യർത്ഥനകൾ എന്നിവ അറിയിക്കാനോ ഇവിടെ പറയാം.',help:[],emergency:'അടിയന്തര സാഹചര്യങ്ങളിൽ Nurse Call ബട്ടൺ അമർത്തുക.',requests:'നിങ്ങളുടെ ആവശ്യങ്ങൾ'},
+  english:{sub:'Speak here to call a nurse, request food, room cleaning, accounts, complaints, or other requests.',help:[],emergency:'For emergencies, press the Nurse Call button.',requests:'Your requests'},
+  malayalam:{sub:'നഴ്സിനെ വിളിക്കാനോ, ഭക്ഷണം, മുറി വൃത്തിയാക്കൽ, അക്കൗണ്ട്, പരാതികൾ അല്ലെങ്കിൽ അഭ്യർത്ഥനകൾ എന്നിവ അറിയിക്കാനോ ഇവിടെ പറയാം.',help:[],emergency:'അടിയന്തര സാഹചര്യങ്ങളിൽ Nurse Call ബട്ടൺ അമർത്തുക.',requests:'നിങ്ങളുടെ ആവശ്യങ്ങൾ'},
+  arabic:{sub:'تحدث هنا لطلب ممرضة أو طعام أو تنظيف الغرفة أو الحسابات أو الشكاوى أو أي طلب آخر.',help:[],emergency:'في الحالات الطارئة، اضغط زر Nurse Call.',requests:'طلباتك'}
 };
 const languageName={auto:'Auto',english:'English',malayalam:'മലയാളം',arabic:'العربية'};
 const categoryLabel=key=>categories[key]?.label||'Request';
@@ -15,9 +15,24 @@ function displayLanguage(){return language()==='auto'?'auto':language();}
 function detectLanguage(text){if(/[\u0600-\u06FF]/.test(text))return 'arabic';if(/[\u0D00-\u0D7F]/.test(text))return 'malayalam';return 'english';}
 function requestLanguage(text){return language()==='auto'?detectLanguage(text):language();}
 function bubble(text,user=false){const div=document.createElement('div');div.className='bubble'+(user?' user':'');div.textContent=text;$('chat').append(div);$('chat').scrollTop=$('chat').scrollHeight;}
+const startupCopy={
+  english:{preparing:'Getting ready… Please allow microphone access if asked.',connecting:'Connecting to your companion…',greeting:'Your companion will greet you shortly…'},
+  malayalam:{preparing:'തയ്യാറാകുന്നു… മൈക്രോഫോൺ അനുമതി ചോദിച്ചാൽ അനുവദിക്കുക.',connecting:'സഹായിയുമായി ബന്ധിപ്പിക്കുന്നു…',greeting:'സഹായി ഉടൻ സംസാരിക്കും…'},
+  arabic:{preparing:'جارٍ الاستعداد… يرجى السماح باستخدام الميكروفون إذا طُلب ذلك.',connecting:'جارٍ الاتصال بمساعدك…',greeting:'سيتحدث مساعدك إليك بعد قليل…'}
+};
+function setStartupState(stage){
+  document.body.dataset.voiceState='connecting';
+  const status=$('voice-startup');status.hidden=false;
+  status.lang={english:'en',malayalam:'ml',arabic:'ar'}[language()]||'ml';
+  status.textContent=(startupCopy[language()]||startupCopy.malayalam)[stage];
+}
+function setMicAudio(level=0){$('start').style.setProperty('--voice-level',String(Math.max(0,Math.min(1,level))));}
 function setVoiceState(label=''){
-  const normalized=String(label).toLowerCase();
-  document.body.dataset.voiceState=normalized.includes('speak')?'speaking':normalized.includes('listen')?'listening':active?'listening':'idle';
+  const normalized=String(label).toLowerCase();if(!normalized.includes('speak'))setMicAudio(0);
+  // Startup feedback remains until actual audio or a ready listening event.
+  if(active&&document.body.dataset.voiceState==='connecting'&&!/speak|listen/.test(normalized))return;
+  $('voice-startup').hidden=true;
+  document.body.dataset.voiceState=normalized.includes('speak')?'speaking':normalized.includes('listen')?'listening':normalized.includes('ending')?'ending':active?'listening':'idle';
 }
 function normalizeSpeechLanguage(lang){lang=String(lang||'english').toLowerCase();if(lang==='ml'||lang==='malayalam')return 'malayalam';if(lang==='ar'||lang==='arabic')return 'arabic';return 'english';}
 function unlockNotificationAudio(){try{notificationAudio ||= new AudioContext();notificationAudio.resume?.();}catch{} if('speechSynthesis'in window){speechSynthesis.getVoices();speechSynthesis.resume?.();}}
@@ -27,7 +42,7 @@ function acknowledgementMessage(){return 'The request has been accepted.';}
 function playNotificationTone(){try{unlockNotificationAudio();if(!notificationAudio)return;const now=notificationAudio.currentTime;[660,880].forEach((frequency,index)=>{const oscillator=notificationAudio.createOscillator(),gain=notificationAudio.createGain();oscillator.connect(gain);gain.connect(notificationAudio.destination);oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.001,now+index*.16);gain.gain.exponentialRampToValueAtTime(.12,now+index*.16+.02);gain.gain.exponentialRampToValueAtTime(.001,now+index*.16+.18);oscillator.start(now+index*.16);oscillator.stop(now+index*.16+.2);});}catch{}}
 function speakAcknowledgement(){unlockNotificationAudio();playNotificationTone();setTimeout(()=>speak(acknowledgementMessage(),'english',true),280);}
 function isNightBySettings(){if(settings.display==='day')return false;if(settings.display==='night')return true;const hour=new Date().getHours(),start=Number(settings.nightStart??18),end=Number(settings.nightEnd??7);return start<end?hour>=start&&hour<end:hour>=start||hour<end;}
-function updateTheme(){const now=new Date(),night=isNightBySettings(),time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});document.body.dataset.theme=night?'night':'day';$('patient-time').textContent=time.replace(/\s?[AP]M$/i,'');$('patient-period').textContent=time.match(/AM|PM/i)?.[0]||'';$('patient-date').textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});$('display-mode').textContent=(settings.display==='auto'?'☼ Auto · ':'')+(night?'Night':'Day');}
+function updateTheme(){const now=new Date(),night=isNightBySettings(),time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});document.body.dataset.theme=night?'night':'day';$('patient-time').textContent=time.replace(/\s?[AP]M$/i,'');$('patient-period').textContent=time.match(/AM|PM/i)?.[0]||'';$('patient-date').textContent=now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});$('display-mode').textContent=(settings.display==='auto'?'☼ Auto · ':'')+(night?'Night':'Day');}
 function syncSettingsToUI(){
   $('header-room').textContent=store.profile?'Room '+store.profile.room:'Room';
   $('header-ward').textContent=settings.ward||'Ward';
@@ -36,44 +51,56 @@ function syncSettingsToUI(){
   document.querySelectorAll('#language-tabs button').forEach(button=>button.classList.toggle('selected',button.dataset.language===language()));
   $('mobile-language-label').textContent=languageName[language()]||'Auto';
   $('setting-language').value=language();$('setting-display').value=settings.display;$('ward-unit').value=settings.ward;$('patient-name').value=settings.patientName;$('patient-uhid').value=settings.uhid;$('night-start').value=settings.nightStart;$('night-end').value=settings.nightEnd;if(store.profile)$('demo-room').value=store.profile.room;
-  const copy=langText[displayLanguage()]||langText.auto;$('tap-title').textContent=copy.tap;$('tap-subtitle').textContent=copy.sub;$('helper-card').innerHTML=copy.help.map(line=>`<p>${escapeHTML(line)}</p>`).join('');$('helper-card').hidden=!copy.help.length;$('emergency-note').textContent=copy.emergency;$('requests-title').textContent=copy.requests;updateTheme();
+  const copy=langText[displayLanguage()]||langText.auto;$('tap-subtitle').textContent=copy.sub;$('helper-card').innerHTML=copy.help.map(line=>`<p>${escapeHTML(line)}</p>`).join('');$('helper-card').hidden=!copy.help.length;$('emergency-note').textContent=copy.emergency;$('patient-requests').setAttribute('aria-label',copy.requests);$('requests-dialog-title').textContent=copy.requests;const requestCopy={english:['My requests','No requests today.'],malayalam:['അഭ്യർത്ഥനകൾ','ഇന്ന് അഭ്യർത്ഥനകളൊന്നുമില്ല.'],arabic:['الطلبات','لا توجد طلبات اليوم.']}[language()]||['അഭ്യർത്ഥനകൾ','ഇന്ന് അഭ്യർത്ഥനകളൊന്നുമില്ല.'];$('requests-button-label').textContent=requestCopy[0];$('requests-button').setAttribute('aria-label',requestCopy[0]);$('requests-button').title=requestCopy[0];$('requests-empty').textContent=requestCopy[1];updateTheme();
 }
 function setMobileMenu(open){
   document.body.classList.toggle('mobile-menu-open',open);
   $('mobile-menu-button').setAttribute('aria-expanded',String(open));
   $('mobile-menu-backdrop').hidden=!open;
 }
-function setSession(value){active=value;$('start').hidden=false;$('start').disabled=value||!store.profile;$('end').hidden=!value;$('chat').hidden=true;setVoiceState(value?'listening':'idle');document.body.classList.toggle('conversation-active',value);}
+function setSession(value){active=value;$('start').hidden=false;$('start').disabled=!store.profile;$('start').setAttribute('aria-label',value?'Stop conversation':'Start conversation');$('start').setAttribute('aria-pressed',String(value));$('mic-action-label').textContent=value?'Stop':'Start';$('chat').hidden=true;if(value&&!store.demo)setStartupState('preparing');else setVoiceState(value?'listening':'idle');document.body.classList.toggle('conversation-active',value);}
 function warmVoice(){if(store.profile&&!store.demo)LiveCompanion.warm(store).catch(()=>{});}
-function end(){starting=false;clearTimeout(autoEndTimer);autoEndTimer=null;live?.stop();live=null;if('speechSynthesis'in window)speechSynthesis.cancel();$('chat').replaceChildren();$('pending').hidden=true;setSession(false);$('start').disabled=!store.profile;warmVoice();}
+function end(){++startAttempt;starting=false;clearTimeout(autoEndTimer);autoEndTimer=null;live?.stop();live=null;if('speechSynthesis'in window)speechSynthesis.cancel();$('chat').replaceChildren();$('pending').hidden=true;setSession(false);$('start').disabled=!store.profile;warmVoice();}
 function scheduleAutoEnd(delay=3500){clearTimeout(autoEndTimer);autoEndTimer=setTimeout(end,delay);}
 async function start(){
   if(active||starting)return;if(!store.profile){$('login-dialog').showModal();return;}
-  starting=true;$('start').disabled=true;
+  const attempt=++startAttempt;starting=true;$('start').disabled=true;
   try{
     setSession(true);const lang=language()==='auto'?'malayalam':language();const greeting=lang==='malayalam'?'രാജഗിരി ആശുപത്രിയിലേക്ക് സ്വാഗതം. ഞാൻ താങ്കളെ എങ്ങനെയാണ് സഹായിക്കേണ്ടത്?':lang==='arabic'?'مرحباً بكم في مستشفى راجاغيري. كيف يمكنني مساعدتك؟':'Welcome to Rajagiri Hospital. How can I assist you?';bubble(greeting);speak(greeting,lang);
     if(!store.demo){
-      live=new LiveCompanion(store,{languageMode:language(),onText:text=>bubble(text),onState:setVoiceState,onError:message=>{toast(message);end();},onEnd:()=>scheduleAutoEnd(),onRequest:async args=>{
+      live=new LiveCompanion(store,{languageMode:language(),onText:text=>{if(attempt===startAttempt)bubble(text);},onState:state=>{if(attempt===startAttempt)setVoiceState(state);},onStartup:stage=>{if(attempt===startAttempt)setStartupState(stage);},onAudioLevel:level=>{if(attempt===startAttempt)setMicAudio(level);},onTiming:timing=>console.debug('[Voice startup]',timing.stage,timing.elapsedMs+'ms'),onError:message=>{if(attempt===startAttempt){toast(message);end();}},onEnd:()=>{if(attempt===startAttempt)scheduleAutoEnd();},onRequest:async args=>{
         const lang=args.patientLanguage&&args.patientLanguage!=='other'?args.patientLanguage:requestLanguage(args.summary);
         try{const id=await store.create(args.category,args.summary,crypto.randomUUID(),lang);toast(`Request sent · ${categoryLabel(args.category)}`);return {requestId:id,status:'sent'};}catch(error){toast('Request was not sent. '+error.message);return {status:'failed',error:'Request could not be saved.'};}
       }});
-      await live.start();if(!live||live.stopped)throw Error('The voice session closed before it was ready. Please start again.');
+      await live.start();if(attempt!==startAttempt)return;if(!live||live.stopped)throw Error('The voice session closed before it was ready. Please start again.');
     }
-  }catch(error){end();toast('Could not start: '+error.message);}finally{starting=false;$('start').disabled=active||!store.profile;}
+  }catch(error){if(attempt===startAttempt){end();toast('Could not start: '+error.message);}}finally{if(attempt===startAttempt){starting=false;$('start').disabled=!store.profile;}}
 }
 function showConfirmation(category,summary,id,patientLanguage){$('pending').hidden=false;$('pending').innerHTML=`<p>${escapeHTML(summary)}</p><button class="primary" id="confirm-request">Send request</button> <button class="text-button" id="cancel-request">Cancel</button>`;$('confirm-request').onclick=async()=>{try{await store.create(category,summary,id||crypto.randomUUID(),patientLanguage);$('pending').hidden=true;toast('Request sent');}catch(error){toast(error.message);}};$('cancel-request').onclick=()=>$('pending').hidden=true;}
 function handleTyped(text){bubble(text,true);const lang=requestLanguage(text),category=guessCategory(text)||'guestRelations';showConfirmation(category,text,null,lang);}
-$('start').onclick=start;$('end').onclick=end;$('mobile-menu-button').onclick=() => setMobileMenu(!document.body.classList.contains('mobile-menu-open'));$('mobile-language-pill').onclick=()=>setMobileMenu(true);$('mobile-menu-backdrop').onclick=()=>setMobileMenu(false);$('message-form').onsubmit=e=>{e.preventDefault();const text=$('message').value.trim();$('message').value='';if(text)handleTyped(text);};$('display-mode').onclick=()=>{settings.display=settings.display==='auto'?'day':settings.display==='day'?'night':'auto';settings=saveTabletSettings(settings);syncSettingsToUI();};
+$('requests-button').onclick=()=>{setMobileMenu(false);$('requests-dialog').showModal();};$('requests-close').onclick=()=>$('requests-dialog').close();
+$('start').onclick=()=>{if(active||starting)end();else start();};$('mobile-menu-button').onclick=() => setMobileMenu(!document.body.classList.contains('mobile-menu-open'));$('mobile-language-pill').onclick=()=>setMobileMenu(true);$('mobile-menu-backdrop').onclick=()=>setMobileMenu(false);$('message-form').onsubmit=e=>{e.preventDefault();const text=$('message').value.trim();$('message').value='';if(text)handleTyped(text);};$('display-mode').onclick=()=>{const mode=$('setting-display').value;settings.display=mode==='auto'?'day':mode==='day'?'night':'auto';settings=saveTabletSettings(settings);$('setting-display').value=settings.display;updateTheme();};
 $('account').addEventListener('click',()=>setMobileMenu(false));
 document.addEventListener('pointerdown',unlockNotificationAudio,{passive:true});
 document.addEventListener('keydown',unlockNotificationAudio);
 document.querySelectorAll('#language-tabs button').forEach(button=>button.onclick=()=>{settings.language=button.dataset.language;settings=saveTabletSettings(settings);syncSettingsToUI();setMobileMenu(false);if(live)live.sendText(`Language setting changed to ${language()}. Continue using this setting.`);});
 $('night-start').innerHTML=hourOptions();$('night-end').innerHTML=hourOptions();
 function rowStatus(row){return row.status==='new'?'received':row.status==='in-progress'?'way':'done';}
-function statusLabel(row){return {received:'Received',way:'On the way',done:'Completed'}[rowStatus(row)]||'Received';}
+function requestProgress(row){
+  const current={received:0,way:1,done:2}[rowStatus(row)];
+  const labels=['Received','On the way','Done'];
+  const check='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
+  const walking='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14" cy="4" r="1.5"/><path d="m12 8 3 3 4 1M8 11l4-3-1 6 4 3 1 4M11 14l-5 7"/></svg>';
+  return `<ol class="request-progress" aria-label="Request progress: ${labels[current]}">${labels.map((label,index)=>{
+    const reached=index<=current;
+    const icon=index===1&&current===1?walking:reached?check:'';
+    return `<li class="progress-step${reached?' reached':''}${index<current?' passed':''}${index===current?' current':''}${index===1&&current===1?' walking':''}"${index===current?' aria-current="step"':''}><span class="progress-circle" aria-hidden="true">${icon}</span><span class="progress-label">${label}</span></li>`;
+  }).join('')}</ol>`;
+}
 function renderPatientRequests(){
   const today=new Date();today.setHours(0,0,0,0);const rows=store.items.filter(r=>r.room===store.profile?.room&&r.createdAt>=today.getTime()).sort((a,b)=>b.createdAt-a.createdAt);
-  $('patient-requests').innerHTML=rows.map(r=>`<article class="patient-request-card ${rowStatus(r)}"><b class="request-icon">${escapeHTML(categories[r.category]?.icon||'!')}</b><div><strong>${escapeHTML(r.summary)}</strong><small>${escapeHTML(categoryLabel(r.category))} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></div><div class="progress-bars"><i></i><i></i><i></i></div><span>${escapeHTML(statusLabel(r))}</span></article>`).join('');
+  $('requests-empty').hidden=rows.length>0;$('requests-count').hidden=!rows.length;$('requests-count').textContent=String(rows.length);
+  $('patient-requests').innerHTML=rows.map(r=>`<article class="patient-request-card ${rowStatus(r)}"><b class="request-icon">${escapeHTML(categories[r.category]?.icon||'!')}</b><div><strong>${escapeHTML(r.summary)}</strong><small>${escapeHTML(categoryLabel(r.category))} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></div>${requestProgress(r)}</article>`).join('');
 }
 function activeRoomRequests(){return store.items.filter(r=>r.room===store.profile?.room&&r.status==='in-progress');}
 function renderStaffRequests(){const rows=activeRoomRequests();if(!rows.some(r=>r.id===selectedCompletionId))selectedCompletionId=rows[0]?.id||null;$('staff-request-list').innerHTML=rows.length?rows.map(r=>`<button type="button" data-complete-id="${escapeHTML(r.id)}" class="${r.id===selectedCompletionId?'selected':''}"><strong>${escapeHTML(categoryLabel(r.category))}</strong><span>${escapeHTML(r.summary)} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${r.acknowledgedByEmployeeId?' · ack '+escapeHTML(r.acknowledgedByEmployeeId):''}</span><em>${statuses[r.status]}</em></button>`).join(''):'<p>No acknowledged requests are waiting for bedside completion.</p>';$('staff-request-list').querySelectorAll('[data-complete-id]').forEach(button=>button.onclick=()=>{selectedCompletionId=button.dataset.completeId;renderStaffRequests();});$('staff-save').disabled=!selectedCompletionId;}
