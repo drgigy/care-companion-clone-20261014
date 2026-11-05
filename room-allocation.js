@@ -6,7 +6,7 @@ const labels={...allocationStatuses,unreported:'Not yet reported'};
 export function boardRooms(rows){const reported=new Map(rows.filter(r=>allocationRooms.includes(r.room)&&allocationStatuses[r.status]).map(r=>[r.room,r]));return allocationRooms.map(room=>({...reported.get(room),room,status:reported.get(room)?.status||'unreported'}));}
 function render(rows,metadata={}){
  const all=boardRooms(rows),counts=Object.fromEntries(Object.keys(labels).map(status=>[status,all.filter(r=>r.status===status).length]));
- $('legend').innerHTML=Object.entries(labels).map(([key,label])=>`<div class="legend-item"><i class="swatch ${key}"></i><span>${label}</span><b>${counts[key]}</b></div>`).join('');
+ $('legend').innerHTML=Object.entries(labels).map(([key,label])=>`<div class="legend-item ${key}"><span>${label}</span><b>${counts[key]}</b></div>`).join('');
  $('room-grid').innerHTML=all.map(row=>{const when=row.updatedAt?new Date(row.updatedAt):null;return `<article class="room-tile ${row.status}" aria-label="Room ${row.room}: ${labels[row.status]}"><div class="tile-top"><span>ROOM</span>${bed}</div><strong>${row.room}</strong><span class="tile-status">${labels[row.status]}</span><small>${when?'Reported '+when.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' · '+when.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'Awaiting first nursing report'}</small></article>`;}).join('');
  $('cached-warning').hidden=!metadata.cached;
 }
