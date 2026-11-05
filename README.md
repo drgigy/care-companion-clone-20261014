@@ -38,7 +38,7 @@ The November 2026 update was adapted from the supplied Aster source snapshot `b8
 
 ## Room Allocation and multi-request nursing dictation
 
-`room-allocation.html` is a read-only live board for rooms 301–330. The dedicated `departmentAdmin / roomAllocation` login and hospital Administrators can view it. Rooms without a report display **Ready for occupancy** in white, as requested. This is a display default; it does not create a nursing report. Statuses are occupied (red), awaiting discharge (orange), discharge tomorrow (blue), vacated/awaiting cleaning (green) and ready for occupancy (white).
+`room-allocation.html` is a read-only live board for rooms 301–330. The dedicated `departmentAdmin / roomAllocation` login and hospital Administrators can view it. Rooms without a report display **Ready for occupancy** in green, as requested. This is a display default; it does not create a nursing report. Statuses are occupied (red), awaiting discharge (orange), discharge tomorrow (blue), vacated/awaiting cleaning (light grey) and ready for occupancy (green).
 
 Only enabled Staff accounts through the nursing callable can change room status. Patient tablets retain eight categories and cannot submit Room Allocation updates. Department accounts cannot directly write board data.
 
