@@ -69,6 +69,15 @@ service cloud.firestore {
         && request.resource.data.completedByEmployeeId.size() <= 40;
       allow delete: if false;
     }
+    function allocationViewer(){return administrator() || (enabled() && profile().role == 'departmentAdmin' && profile().department == 'roomAllocation');}
+    match /roomAllocation/{room} {
+      allow read: if allocationViewer();
+      allow write: if false;
+    }
+    match /roomAllocationReports/{id} {
+      allow read: if allocationViewer() || (staff() && resource.data.submittedByUid == request.auth.uid);
+      allow write: if false;
+    }
     match /{document=**}{allow read, write: if false;}
   }
 }

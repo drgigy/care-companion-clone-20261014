@@ -35,3 +35,13 @@ Firestore rule tests use project `demo-rajagiri-admin` and the local emulator at
 Pushing `main` publishes the explicit frontend file list through GitHub Pages. Deploy rules and required callable functions explicitly to `care-companion-mumbai-20261014`. Preserve existing users and requests. Never replay historical Aster account migrations or request cleanup.
 
 The November 2026 update was adapted from the supplied Aster source snapshot `b89832701bd4cfe2d3e267c0b40280220a133171`, retaining Rajagiri identity, red styling, configuration and existing data. Some source modules/tests retain compatibility with the older nursing voice flow; the active nursing page uses recording and transcription.
+
+## Room Allocation and multi-request nursing dictation
+
+`room-allocation.html` is a read-only live board for rooms 301–330. The dedicated `departmentAdmin / roomAllocation` login and hospital Administrators can view it. Missing reports display **Not yet reported**, never an assumed occupancy state. Statuses are occupied (red), awaiting discharge (orange), vacated/awaiting cleaning (green) and ready for occupancy (white).
+
+Only enabled Staff accounts through the nursing callable can change room status. Patient tablets retain eight categories and cannot submit Room Allocation updates. Department accounts cannot directly write board data.
+
+The nursing recorder accepts several requests for one room, requests for several rooms, and mixed care/status dictation. Every request is reviewed as a separate editable room/department/request row; allocation rows additionally require a status. A submission contains 1–30 rows and commits atomically. Ordinary care may reference any valid room; allocation rooms are restricted to 301–330. Duplicate allocation statuses for the same room require correction before sending. Stable recording IDs prevent duplicate requests and prevent old retries from reverting newer room reports.
+
+Room status and immutable report records are stored separately from the ordinary service queue. The private `nursingBatches` ledger enforces retry safety. `tests/room-allocation.mjs` checks validation, routing, roles and retries; `tests/room-allocation-emulator.mjs` checks actual transactions and Firestore rules in the local demo emulator only.

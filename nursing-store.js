@@ -1,3 +1,4 @@
+import {allocationStatuses} from './nursing-drafts.js?v=room-allocation-20261105';
 import {assertLocalSafe} from './access.js';
 import {config} from './config.js';
 export const NURSING_SETTINGS_KEY='care-companion-nursing-settings-v1';
@@ -19,24 +20,42 @@ export class NursingStore {
     this.call=(name,data)=>functions.httpsCallable(service,name==='liveToken'?'nursingLiveToken':name)(data);
     await auth.setPersistence(this.auth,auth.browserLocalPersistence);
     auth.onAuthStateChanged(this.auth,user=>{
-      const epoch=++this.epoch;this.profileUnsubscribe?.();this.requestUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null);
+      const epoch=++this.epoch;this.profileUnsubscribe?.();this.requestUnsubscribe?.();this.allocationUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null);
       if(!user)return;
       this.profileUnsubscribe=db.onSnapshot(db.doc(this.db,'profiles',user.uid),snapshot=>{
         if(epoch!==this.epoch)return;
         const profile=snapshot.exists()?snapshot.data():null;
-        if(!profile||profile.role!=='staff'||profile.disabled===true){this.requestUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null,Error('This page requires an enabled staff account.'));return;}
+        if(!profile||profile.role!=='staff'||profile.disabled===true){this.requestUnsubscribe?.();this.allocationUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null,Error('This page requires an enabled staff account.'));return;}
         const first=!this.profile;this.profile={...profile,uid:user.uid};onState(this.profile);
         if(first){
+          const results={care:[],allocation:[]};
+          const publish=()=>{this.items=[...results.care,...results.allocation].sort((a,b)=>b.createdAt-a.createdAt);this.emit();};
+          const errorHandler=error=>{if(epoch===this.epoch){this.items=[];this.emit();onState(this.profile,error);}};
           const q=db.query(db.collection(this.db,'requests'),db.where('submittedByUid','==',user.uid));
-          this.requestUnsubscribe=db.onSnapshot(q,snap=>{if(epoch!==this.epoch||!this.profile)return;this.items=snap.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toMillis?.()||Date.now()})).sort((a,b)=>b.createdAt-a.createdAt);this.emit();},error=>{if(epoch===this.epoch){this.items=[];this.emit();onState(this.profile,error);}});
+          this.requestUnsubscribe=db.onSnapshot(q,snap=>{if(epoch!==this.epoch||!this.profile)return;results.care=snap.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toMillis?.()||Date.now()}));publish();},errorHandler);
+          const reportQuery=db.query(db.collection(this.db,'roomAllocationReports'),db.where('submittedByUid','==',user.uid));
+          this.allocationUnsubscribe=db.onSnapshot(reportQuery,snap=>{if(epoch!==this.epoch||!this.profile)return;results.allocation=snap.docs.flatMap(d=>{const data=d.data();return (data.roomUpdates||[]).map(u=>({id:d.id+'_'+u.room,...data,room:u.room,summary:allocationStatuses[u.roomStatus]||u.roomStatus,createdAt:data.createdAt?.toMillis?.()||Date.now()}));});publish();},errorHandler);
         }
-      },error=>{if(epoch===this.epoch){this.requestUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null,error);}});
+      },error=>{if(epoch===this.epoch){this.requestUnsubscribe?.();this.allocationUnsubscribe?.();this.profile=null;this.items=[];this.emit();onState(null,error);}});
     });
   }
   async login(email,password){if(!this.demo)await this.authSDK.signInWithEmailAndPassword(this.auth,email,password);}
   async logout(){if(this.demo){this.profile=null;this.items=[];this.emit();this.onState(null);}else await this.authSDK.signOut(this.auth);}
   async create(args,requestId){
     if(this.profile?.role!=='staff')throw Error('Sign in with a staff account.');
+    if(this.demo&&Array.isArray(args.requests)){
+      const batches=JSON.parse(localStorage.getItem('care-companion-nursing-batches-v1')||'[]');
+      if(batches.includes(requestId))return {requestId,status:'sent',retried:true};
+      const all=JSON.parse(localStorage.getItem('care-companion-requests-v1')||'[]'),updates=args.requests.filter(r=>r.category==='roomAllocation'),now=Date.now();
+      for(const [i,row]of args.requests.entries())if(row.category!=='roomAllocation'){const item={...row,id:`${requestId}_${i}`,ward:args.ward,patientLanguage:args.patientLanguage,ownerUid:'nursing:'+this.profile.uid,submittedByUid:this.profile.uid,submittedVia:'nursing-bot',status:'new',createdAt:now};all.unshift(item);this.items.unshift(item);}
+      if(updates.length){
+        const reports=JSON.parse(localStorage.getItem('care-companion-allocation-reports-v1')||'[]'),rooms=JSON.parse(localStorage.getItem('care-companion-room-allocation-v1')||'{}');
+        for(const row of updates)rooms[row.room]={room:row.room,status:row.roomStatus,updatedAt:now};
+        localStorage.setItem('care-companion-room-allocation-v1',JSON.stringify(rooms));
+        const report={id:requestId,category:'roomAllocation',room:updates.map(u=>u.room).join(', '),roomUpdates:updates.map(({room,roomStatus})=>({room,roomStatus})),summary:updates.map(u=>`${u.room}: ${allocationStatuses[u.roomStatus]||u.roomStatus}`).join('; '),submittedByUid:this.profile.uid,status:'recorded',createdAt:now};reports.unshift(report);this.items.unshift(...updates.map(u=>({...report,id:requestId+'_'+u.room,room:u.room,summary:allocationStatuses[u.roomStatus]||u.roomStatus})));localStorage.setItem('care-companion-allocation-reports-v1',JSON.stringify(reports));
+      }
+      localStorage.setItem('care-companion-requests-v1',JSON.stringify(all));localStorage.setItem('care-companion-nursing-batches-v1',JSON.stringify([...batches,requestId]));this.emit();return {requestId,status:'sent',count:args.requests.length};
+    }
     if(this.demo){const row={id:requestId,...args,ownerUid:'nursing:'+this.profile.uid,submittedByUid:this.profile.uid,submittedVia:'nursing-bot',status:'new',createdAt:Date.now()};const all=JSON.parse(localStorage.getItem('care-companion-requests-v1')||'[]');if(!all.some(r=>r.id===requestId))localStorage.setItem('care-companion-requests-v1',JSON.stringify([row,...all]));if(!this.items.some(r=>r.id===requestId))this.items.unshift(row);this.emit();return {requestId,room:args.room,status:'sent'};}
     return (await this.call('nursingRequest',{...args,requestId})).data;
   }

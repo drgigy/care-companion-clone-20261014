@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rajagiri Hospital Care Companion · Nursing staff</title>
-<link rel="stylesheet" href="styles.css?v=rajagiri-upgrade-20261105">
-<link rel="stylesheet" href="nursing-mobile.css">
+<link rel="stylesheet" href="styles.css?v=room-allocation-20261105">
+<link rel="stylesheet" href="nursing-mobile.css?v=room-allocation-20261105">
 </head>
 <body class="calm-kiosk nursing-recorder" data-page="patient" data-theme="day" data-voice-state="idle">
 <div class="kiosk-shell">
@@ -33,13 +33,14 @@
 <button id="retry-transcription" hidden type="button">Retry transcription</button>
 <button id="discard-audio" type="button" hidden>Discard recording / draft</button>
 <form id="draft-form" hidden>
-<h2>Review request</h2>
-<label>Room number<input id="draft-room" required maxlength="12" autocomplete="off"></label>
-<label>Department<select id="draft-department" required></select></label>
-<label>Request<textarea id="draft-request" required maxlength="500" rows="4"></textarea></label>
+<h2>Review requests</h2>
+<p id="draft-count" class="draft-count"></p>
+<p class="draft-help">One row per request. Check every room, department and request. Room Allocation rows also require a status. All rows are sent together.</p>
+<div id="draft-rows"></div>
+<button id="add-draft" type="button">+ Add another request</button>
 <details><summary>Recorded transcript</summary><p id="draft-transcript"></p></details>
 <input type="hidden" id="draft-language" value="other">
-<div class="draft-actions"><button id="discard" type="button">Discard</button><button id="send" class="primary">Send</button></div>
+<div class="draft-actions"><p id="draft-error" role="alert"></p><button id="discard" type="button">Discard</button><button id="send" class="primary">Send</button></div>
 </form>
 <div class="talk-copy">
       <p class="tap-subtitle" id="tap-subtitle">സംസാരിക്കാൻ ടാപ്പ് ചെയ്യുക · اضغط للتحدث</p>
@@ -78,6 +79,6 @@
 <form id="message-form" hidden><input id="message"><button>Send</button></form>
 <button id="mic" hidden></button>
 <div id="session-controls" hidden></div>
-<script type="module" src="nursing-bot.js?v=rajagiri-upgrade-20261105"></script>
+<script type="module" src="nursing-bot.js?v=room-allocation-20261105"></script>
 </body>
 </html>

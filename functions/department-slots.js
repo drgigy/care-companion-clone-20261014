@@ -1,5 +1,5 @@
 import {HttpsError} from 'firebase-functions/v2/https';
-export const departments=['food','housekeeping','engineering','ipBilling','insurance','it','guestRelations'];
+export const departments=['food','housekeeping','engineering','ipBilling','insurance','it','guestRelations','roomAllocation'];
 // A slot is permanent even when its login is disabled. Replacement is an explicit owner operation.
 export async function reserveDepartment(db,department,uid){
  if(!departments.includes(department))throw new HttpsError('invalid-argument','Select a valid department.');

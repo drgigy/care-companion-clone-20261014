@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Room Allocation · Rajagiri Hospital</title><link rel="stylesheet" href="room-allocation.css?v=room-allocation-20261105"></head>
+<body><header class="board-header"><div><span class="brand">Rajagiri Hospital</span><span class="brand-sub">CARE COMPANION · POWERED BY WOYZ</span></div><div class="account-actions"><span id="identity"></span><button id="sign-out" hidden>Sign out</button></div></header>
+<main><section id="sign-in-panel" class="sign-in-card"><span class="eyebrow">ROOM ALLOCATION</span><h1>A clear view of every room.</h1><p>Sign in with your Room Allocation department login to view rooms 301–330.</p><form id="login-form"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button class="primary" id="login-submit">Sign in</button></form><p id="login-error" role="alert"></p></section>
+<section id="board" hidden><div class="board-heading"><div><span class="eyebrow">LIVE ROOM OVERVIEW</span><h1>Room Allocation</h1><p>Rooms 301–330 · 30 beds</p></div><div class="connection"><span id="connection" role="status">Connecting…</span><small>Updates are reported only from the nursing page.</small></div></div>
+<p id="cached-warning" class="warning" role="alert" hidden>Offline or cached data — these are last-known statuses. Verify before allocating a room.</p>
+<div id="legend" class="legend" aria-label="Room status legend"></div>
+<div class="board-note">Each tile shows its latest nursing report. <strong>Not yet reported</strong> means no confirmed status has been received; it does not mean available.</div>
+<div id="room-grid" class="room-grid" aria-label="Room occupancy board"></div>
+<p class="board-footer">Read-only board · Nurses review and send updates from the nursing recorder · No patient details are displayed.</p></section></main>
+<script type="module" src="room-allocation.js?v=room-allocation-20261105"></script></body></html>

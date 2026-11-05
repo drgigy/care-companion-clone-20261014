@@ -1,3 +1,5 @@
+import {createNursingBatchHandler} from './nursing-batches.js';
+import {createRoomAllocationHandler} from './room-allocation.js';
 import {HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
 const fail=(code,message)=>{throw new HttpsError(code,message);};
@@ -21,7 +23,11 @@ export function nursingInput(data={}){
   return {room,ward,summary,category:data.category,patientLanguage:data.patientLanguage,requestId:data.requestId};
 }
 export function createNursingRequestHandler(deps){
+  const allocation=createRoomAllocationHandler({...deps,authorize:request=>authorizeNursing(deps,request)});
+  const batch=createNursingBatchHandler({...deps,authorize:request=>authorizeNursing(deps,request),validateCare:nursingInput});
   return async request=>{
+    if(Array.isArray(request.data?.requests))return batch(request);
+    if(request.data?.category==='roomAllocation')return allocation(request);
     const uid=await authorizeNursing(deps,request),input=nursingInput(request.data),{db}=deps;
     const id=`nurse_${uid}_${input.requestId}`,ref=db.doc(`requests/${id}`);
     return db.runTransaction(async tx=>{

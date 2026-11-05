@@ -17,4 +17,5 @@ node tests/request-alert.mjs
 node tests/dashboard-scope.mjs
 node tests/patient-notification.mjs
 node tests/nursing.mjs
+node tests/room-allocation.mjs
 echo "Syntax and offline checks passed. Live services still need acceptance testing."
