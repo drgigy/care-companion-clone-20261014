@@ -516,3 +516,9 @@ body[data-page=dashboard] .brand{white-space:normal;min-width:0}
 body[data-page=patient].calm-kiosk.conversation-active .talk-copy{display:block!important;visibility:hidden}
 body[data-page=patient].calm-kiosk.conversation-active .talk-copy .tap-subtitle{display:block!important;visibility:hidden}
 body[data-page=patient].calm-kiosk.conversation-active .emergency-note{display:block!important;visibility:hidden}
+/* Keep Rajagiri's established red across the new pages. */
+:root{--green:#b52b38}
+body[data-page=patient].calm-kiosk .hero-mic{background:linear-gradient(135deg,#d85a66,#9a2130)}
+.kiosk-languages button.selected{background:#b52b38}
+body[data-page=patient].calm-kiosk .kiosk-footer button{color:#b52b38}
+body[data-page=patient].calm-kiosk[data-theme=night] .kiosk-footer button{color:#ffabb3}

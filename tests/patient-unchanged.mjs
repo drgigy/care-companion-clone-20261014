@@ -1,7 +1,8 @@
+// Rajagiri baseline after the authorized November feature import and branding adaptation.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
-const base='4f78080591724996ef24ca49436df6adef443a63';
+const base='4d04574bf18ced9e21169bb4eabe2aa176c1a95f';
 for(const path of ['voice.js','mic-worklet.js','config.js','patient-notification.js','functions/script.js']){
  assert.equal(readFileSync(path,'utf8'),execFileSync('git',['show',base+':'+path],{encoding:'utf8'}),path+' must remain unchanged');
 }
