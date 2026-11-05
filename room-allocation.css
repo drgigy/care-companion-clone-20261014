@@ -5,3 +5,12 @@
 @media(max-width:480px){.room-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.room-tile{min-height:175px}.legend{display:grid;grid-template-columns:1fr 1fr}.legend-item{font-size:10px;padding:9px;gap:5px}.legend-item b{margin-left:auto}.legend-item:last-child{grid-column:1/-1}.board-header{align-items:flex-start;gap:10px}.brand{font-size:17px}.brand-sub{font-size:7px;letter-spacing:1.2px}.sign-in-card{padding:24px}h1{font-size:29px}.room-tile>strong{font-size:36px}}
 .room-tile>strong,.legend-item b{font-family:Manrope,system-ui,sans-serif}
 @media(min-width:1101px){.board-header{min-height:70px;padding:14px 4%}main{padding:20px 4%}.board-heading h1{font-size:32px;margin:5px 0}.board-heading p{margin-top:4px}.legend{margin:18px 0 10px}.board-note{margin:10px 0 15px}.room-grid{gap:10px}.room-tile{min-height:90px;height:clamp(90px,calc((100dvh - 300px)/5),170px);padding:10px 12px}.tile-top{display:none}.room-tile>strong{font-size:clamp(29px,3.7vh,40px);margin:0 0 3px}.tile-status{font-size:11px}.room-tile>small{font-size:8px;line-height:1.3;padding-top:5px}.board-footer{margin-top:14px}}
+
+/* Compact status board: the page title belongs in the top bar. */
+.board-header{display:grid;grid-template-columns:minmax(190px,1fr) auto minmax(150px,1fr);gap:20px}
+.header-title{text-align:center}.header-title h1{font-size:clamp(21px,2.3vw,30px);line-height:1.2;margin:0;white-space:nowrap}.header-title p{font-size:12px;margin:5px 0 0}
+.account-actions{justify-content:flex-end;min-width:0}.account-actions span{overflow-wrap:anywhere}
+main{padding-top:14px}.legend{margin-top:0}.warning{margin-top:0}
+@media(min-width:1101px){main{padding-top:14px}.legend{margin-top:0}.room-tile{height:clamp(90px,calc((100dvh - 240px)/5),170px)}}
+@media(max-width:800px){.board-header{grid-template-columns:1fr auto;gap:12px 16px}.header-title{grid-column:1/-1;grid-row:2;text-align:left}.header-title h1{font-size:25px;white-space:normal}.account-actions{grid-column:2;grid-row:1}.legend{margin-top:0}main{padding-top:14px}}
+@media(max-width:480px){.header-title h1{font-size:24px}.header-title p{font-size:11px}}
