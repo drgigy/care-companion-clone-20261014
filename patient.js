@@ -1,6 +1,7 @@
-import {CareStore,categories,statuses,$,toast,escapeHTML,guessCategory,setupAccount,loadTabletSettings,saveTabletSettings} from './shared.js';
-import {LiveCompanion} from './voice.js?v=rajagiri-room-20261023';
-const store=new CareStore('patient');let active=false,live=null,starting=false,startAttempt=0,autoEndTimer=null,requestLoaded=false,requestState=new Map(),selectedCompletionId=null,settings=loadTabletSettings(),notificationAudio=null;
+import {CareStore,categories,statuses,$,toast,escapeHTML,guessCategory,setupAccount,loadTabletSettings,saveTabletSettings} from './shared.js?v=rajagiri-upgrade-20261105';
+import {PatientNotification} from './patient-notification.js?v=rajagiri-upgrade-20261105';
+import {LiveCompanion} from './voice.js?v=rajagiri-upgrade-20261105';
+const store=new CareStore('patient');let active=false,live=null,starting=false,startAttempt=0,autoEndTimer=null,requestLoaded=false,requestState=new Map(),selectedCompletionId=null,settings={...loadTabletSettings(),language:'malayalam'};
 const langText={
   auto:{sub:'നഴ്സിനെ വിളിക്കാനോ, ഭക്ഷണം, മുറി വൃത്തിയാക്കൽ, അക്കൗണ്ട്, പരാതികൾ അല്ലെങ്കിൽ അഭ്യർത്ഥനകൾ എന്നിവ അറിയിക്കാനോ ഇവിടെ പറയാം.',help:[],emergency:'അടിയന്തര സാഹചര്യങ്ങളിൽ Nurse Call ബട്ടൺ അമർത്തുക.',requests:'നിങ്ങളുടെ ആവശ്യങ്ങൾ'},
   english:{sub:'Speak here to call a nurse, request food, room cleaning, accounts, complaints, or other requests.',help:[],emergency:'For emergencies, press the Nurse Call button.',requests:'Your requests'},
@@ -35,12 +36,12 @@ function setVoiceState(label=''){
   document.body.dataset.voiceState=normalized.includes('speak')?'speaking':normalized.includes('listen')?'listening':normalized.includes('ending')?'ending':active?'listening':'idle';
 }
 function normalizeSpeechLanguage(lang){lang=String(lang||'english').toLowerCase();if(lang==='ml'||lang==='malayalam')return 'malayalam';if(lang==='ar'||lang==='arabic')return 'arabic';return 'english';}
-function unlockNotificationAudio(){try{notificationAudio ||= new AudioContext();notificationAudio.resume?.();}catch{} if('speechSynthesis'in window){speechSynthesis.getVoices();speechSynthesis.resume?.();}}
+const acceptanceVoice=new PatientNotification({onError:()=>toast('Your request has been accepted. Tap the screen to enable the voice notification.')});
+function unlockNotificationAudio(){void acceptanceVoice.unlock();}
 function speechVoice(lang){if(!('speechSynthesis'in window))return null;const voices=speechSynthesis.getVoices();if(lang==='english')return voices.find(v=>/^en-IN/i.test(v.lang)&&/female|woman|google/i.test(v.name))||voices.find(v=>/^en-IN/i.test(v.lang))||voices.find(v=>/^en-/i.test(v.lang)&&/female|woman|google/i.test(v.name))||voices.find(v=>/^en-/i.test(v.lang))||null;return voices.find(v=>lang==='malayalam'?/^ml/i.test(v.lang):/^ar/i.test(v.lang))||null;}
 function speak(text,lang='english',force=false){if((!force&&!store.demo)||!('speechSynthesis'in window))return;lang=normalizeSpeechLanguage(lang);speechSynthesis.cancel();speechSynthesis.resume?.();const utterance=new SpeechSynthesisUtterance(text);const voice=speechVoice(lang);if(voice)utterance.voice=voice;utterance.rate=.9;utterance.volume=1;utterance.lang=voice?.lang||(lang==='malayalam'?'ml-IN':lang==='arabic'?'ar-SA':'en-US');utterance.onstart=()=>setVoiceState('speaking');utterance.onend=()=>setVoiceState(active?'listening':'idle');utterance.onerror=()=>setVoiceState(active?'listening':'idle');speechSynthesis.speak(utterance);setTimeout(()=>{if(!speechSynthesis.speaking&&!speechSynthesis.pending){speechSynthesis.cancel();speechSynthesis.speak(utterance);}},500);}
-function acknowledgementMessage(){return 'The request has been accepted.';}
-function playNotificationTone(){try{unlockNotificationAudio();if(!notificationAudio)return;const now=notificationAudio.currentTime;[660,880].forEach((frequency,index)=>{const oscillator=notificationAudio.createOscillator(),gain=notificationAudio.createGain();oscillator.connect(gain);gain.connect(notificationAudio.destination);oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.001,now+index*.16);gain.gain.exponentialRampToValueAtTime(.12,now+index*.16+.02);gain.gain.exponentialRampToValueAtTime(.001,now+index*.16+.18);oscillator.start(now+index*.16);oscillator.stop(now+index*.16+.2);});}catch{}}
-function speakAcknowledgement(){unlockNotificationAudio();playNotificationTone();setTimeout(()=>speak(acknowledgementMessage(),'english',true),280);}
+function acknowledgementMessage(){return 'Your request has been accepted.';}
+function speakAcknowledgement(){acceptanceVoice.play();}
 function isNightBySettings(){if(settings.display==='day')return false;if(settings.display==='night')return true;const hour=new Date().getHours(),start=Number(settings.nightStart??18),end=Number(settings.nightEnd??7);return start<end?hour>=start&&hour<end:hour>=start||hour<end;}
 function updateTheme(){const now=new Date(),night=isNightBySettings(),time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});document.body.dataset.theme=night?'night':'day';$('patient-time').textContent=time.replace(/\s?[AP]M$/i,'');$('patient-period').textContent=time.match(/AM|PM/i)?.[0]||'';$('patient-date').textContent=now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});$('display-mode').textContent=(settings.display==='auto'?'☼ Auto · ':'')+(night?'Night':'Day');}
 function syncSettingsToUI(){
@@ -103,24 +104,32 @@ function renderPatientRequests(){
   $('patient-requests').innerHTML=rows.map(r=>`<article class="patient-request-card ${rowStatus(r)}"><b class="request-icon">${escapeHTML(categories[r.category]?.icon||'!')}</b><div><strong>${escapeHTML(r.summary)}</strong><small>${escapeHTML(categoryLabel(r.category))} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></div>${requestProgress(r)}</article>`).join('');
 }
 function activeRoomRequests(){return store.items.filter(r=>r.room===store.profile?.room&&r.status==='in-progress');}
-function renderStaffRequests(){const rows=activeRoomRequests();if(!rows.some(r=>r.id===selectedCompletionId))selectedCompletionId=rows[0]?.id||null;$('staff-request-list').innerHTML=rows.length?rows.map(r=>`<button type="button" data-complete-id="${escapeHTML(r.id)}" class="${r.id===selectedCompletionId?'selected':''}"><strong>${escapeHTML(categoryLabel(r.category))}</strong><span>${escapeHTML(r.summary)} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${r.acknowledgedByEmployeeId?' · ack '+escapeHTML(r.acknowledgedByEmployeeId):''}</span><em>${statuses[r.status]}</em></button>`).join(''):'<p>No acknowledged requests are waiting for bedside completion.</p>';$('staff-request-list').querySelectorAll('[data-complete-id]').forEach(button=>button.onclick=()=>{selectedCompletionId=button.dataset.completeId;renderStaffRequests();});$('staff-save').disabled=!selectedCompletionId;}
+function renderStaffRequests(){const rows=activeRoomRequests();if(selectedCompletionId&&!rows.some(r=>r.id===selectedCompletionId)){selectedCompletionId=null;$('staff-employee-id').value='';$('staff-error').textContent='That request has changed. Select a request again before completing it.';}$('staff-request-list').innerHTML=rows.length?rows.map(r=>`<button type="button" data-complete-id="${escapeHTML(r.id)}" class="${r.id===selectedCompletionId?'selected':''}"><strong>${escapeHTML(categoryLabel(r.category))}</strong><span>${escapeHTML(r.summary)} · ${new Date(r.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${r.acknowledgedByEmployeeId?' · ack '+escapeHTML(r.acknowledgedByEmployeeId):''}</span><em>${statuses[r.status]}</em></button>`).join(''):'<p>No acknowledged requests are waiting for bedside completion.</p>';$('staff-request-list').querySelectorAll('[data-complete-id]').forEach(button=>button.onclick=()=>{selectedCompletionId=button.dataset.completeId;renderStaffRequests();});$('staff-save').disabled=!selectedCompletionId;}
 $('staff').onclick=()=>{setMobileMenu(false);if(active)end();selectedCompletionId=null;$('staff-error').textContent='';$('staff-employee-id').value='';$('staff-dialog').showModal();renderStaffRequests();setTimeout(()=>$('staff-employee-id').focus(),50);};$('staff-close').onclick=()=>$('staff-dialog').close();
 $('staff-form').onsubmit=async e=>{e.preventDefault();$('staff-error').textContent='';try{if(!selectedCompletionId)throw Error('Select an acknowledged request first.');await store.completeAtRoom(selectedCompletionId,'Staff',$('staff-employee-id').value);toast('Request completed');$('staff-dialog').close();$('staff-employee-id').value='';}catch(error){$('staff-error').textContent=error.message;}};
 store.subscribe(items=>{for(const r of items.filter(r=>r.room===store.profile?.room)){const previous=requestState.get(r.id);if(requestLoaded&&previous==='new'&&r.status==='in-progress'){toast(acknowledgementMessage());speakAcknowledgement();}}requestState=new Map(items.map(r=>[r.id,r.status]));requestLoaded=true;renderPatientRequests();if($('staff-dialog').open)renderStaffRequests();});
 function fillSettings(){syncSettingsToUI();$('new-pin').value='';$('confirm-pin').value='';}
-const initialize=setupAccount(store,(profile)=>{if(profile&&!store.demo)warmVoice();fillSettings();$('start').disabled=!profile;if(!profile)$('patient-requests').replaceChildren();else store.emit();});
-$('login-form').addEventListener('submit',event=>{
-  // PIN unlock and sign-in must not save the hidden settings form.
-  if(!store.profile||$('settings-grid').hidden)return;
-  if($('new-pin').value&&$('new-pin').value!==$('confirm-pin').value){
-    event.preventDefault();event.stopImmediatePropagation();$('login-error').textContent='New PIN does not match.';return;
+let assignedIdentity=settings.assignedIdentity||'';
+const initialize=setupAccount(store,profile=>{
+  const identity=profile?`${profile.uid||'demo'}:${profile.room}`:'';
+  if(!profile||(assignedIdentity&&assignedIdentity!==identity)){
+    end();acceptanceVoice.stop();requestState.clear();requestLoaded=false;
+    if(profile)settings=saveTabletSettings({...settings,patientName:'',uhid:''});
   }
-  if($('new-pin').value)settings.pin=$('new-pin').value;
-  settings={...settings,ward:$('ward-unit').value.trim()||'Ward',patientName:$('patient-name').value.trim(),uhid:$('patient-uhid').value.trim(),language:$('setting-language').value,display:$('setting-display').value,nightStart:$('night-start').value,nightEnd:$('night-end').value};
-  settings=saveTabletSettings(settings);
-  // Keep the edited room intact for setupAccount's save handler. Its successful
-  // changeRoom callback refreshes the screen after the room has been persisted.
-},true);
+  if(profile){assignedIdentity=identity;settings=saveTabletSettings({...settings,assignedIdentity:identity});}
+  if(profile&&!store.demo)warmVoice();
+  fillSettings();$('start').disabled=!profile;
+  if(!profile)$('patient-requests').replaceChildren();else store.emit();
+},{prepareSettingsSave:()=>{
+  const newPin=$('new-pin').value;
+  if(newPin&&newPin!==$('confirm-pin').value)throw Error('New PIN does not match.');
+  const next={...settings,ward:$('ward-unit').value.trim()||'Ward',patientName:$('patient-name').value.trim(),uhid:$('patient-uhid').value.trim(),language:$('setting-language').value,display:$('setting-display').value,nightStart:$('night-start').value,nightEnd:$('night-end').value,...(newPin?{pin:newPin}:{})};
+  return ()=>{settings=saveTabletSettings(next);syncSettingsToUI();};
+}});
 updateTheme();setInterval(updateTheme,30000);
 initialize().catch(error=>{toast(error.message);$('connection').textContent='Setup error';$('start').disabled=true;});
-window.addEventListener('pagehide',end);
+window.addEventListener('pagehide',()=>{end();acceptanceVoice.stop();});
+
+// Tablet kiosk gestures: retain one-finger scrolling inside lists and forms.
+document.addEventListener('touchmove',event=>{if(event.touches.length>1&&event.cancelable)event.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',event=>{if(event.cancelable)event.preventDefault();},{passive:false});

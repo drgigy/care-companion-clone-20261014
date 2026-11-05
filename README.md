@@ -1,34 +1,37 @@
-# Care Companion Clone
+# Rajagiri Hospital Care Companion
 
-This is a clean clone of the Care Companion patient tablet and staff dashboard app.
+Rajagiri's independent patient-tablet, nursing-recorder, department-dashboard and account-management application.
 
-The app starts in demo mode and is intentionally not bound to any existing Firebase or Firestore project. Before deploying live Firebase/Gemini functionality, create a new Firebase project, register a new web app, then replace the placeholder values in `config.js`.
+## Production
 
-## Local Demo
+- Site: https://care.woyz.in/
+- Repository: https://github.com/drgigy/care-companion-clone-20261014
+- Firebase: `care-companion-mumbai-20261014`
+- Firestore and Cloud Functions region: `asia-south1` (Mumbai)
 
-```sh
-python3 -m http.server 8765 --bind 127.0.0.1
-```
+This project must never deploy to the separate Aster project. The public web configuration is in `config.js`; `.firebaserc` and `firebase.json` retain the Rajagiri target. Private AI credentials stay in Secret Manager.
 
-Open:
+## Pages and access
 
-- `http://localhost:8765/index.html`
-- `http://localhost:8765/dashboard.html`
-- `http://localhost:8765/log.html`
+- `index.html`: assigned room/tablet account; Malayalam startup, multilingual live conversation, red Start / orange Stop, request tracking and bedside completion.
+- `nursing-bot.html`: enabled Staff accounts record, transcribe, review/edit, then send a request for any dictated room. No request is written until Send.
+- `dashboard.html`: Staff see their own nursing submissions and assigned tablet requests. Administrators see all requests.
+- Eight `*-dashboard.html` pages: category-specific queues; Department Admins access their own department.
+- `log.html`: request history within the same role/assignment scope.
+- `master-admin.html`: protected Master Admin account management, room assignments, enable/disable and private password-setup links.
 
-Demo requests sync across tabs in the same browser origin.
+Master Admin authorization is a private server-managed `adminAccess/{uid}` record. It is separate from the `administrator` profile role used for the hospital-wide dashboard. Tablet room assignments are managed centrally; local Settings manage ward, display, patient context and PIN.
 
-## Live Setup Checklist
+## Local verification
 
-1. Create a new Firebase project.
-2. Enable Firestore in Native mode.
-3. Enable Firebase Authentication with Email/Password.
-4. Register a new Firebase web app.
-5. Replace placeholders in `config.js` and switch `mode` to `firebase`.
-6. Create `.firebaserc` for the new project only.
-7. Configure `functions/.env` from `functions/.env.example`.
-8. Store `GEMINI_API_KEY` in Firebase Secret Manager.
-9. Deploy Firestore rules and functions.
-10. Push this repository to a new GitHub repository and enable GitHub Pages with GitHub Actions.
+Run `zsh CHECK.command` for syntax and offline regression checks. Runtime dependencies live in `functions/` (`npm ci --prefix functions`).
 
-Do not commit `.env`, service-account JSON, private keys, passwords, or real patient data.
+For a safe preview use `python3 tools/mock-preview.py` and open http://127.0.0.1:8879/tools/mock.html. The server substitutes invented demo accounts and a fake recorder; its CSP blocks external connections. Never use production Firebase for test fixtures.
+
+Firestore rule tests use project `demo-rajagiri-admin` and the local emulator at `127.0.0.1:8088`. Run `tests/admin-rules.mjs` and `tests/migration-emulator.mjs` only against that emulator.
+
+## Publishing
+
+Pushing `main` publishes the explicit frontend file list through GitHub Pages. Deploy rules and required callable functions explicitly to `care-companion-mumbai-20261014`. Preserve existing users and requests. Never replay historical Aster account migrations or request cleanup.
+
+The November 2026 update was adapted from the supplied Aster source snapshot `b89832701bd4cfe2d3e267c0b40280220a133171`, retaining Rajagiri identity, red styling, configuration and existing data. Some source modules/tests retain compatibility with the older nursing voice flow; the active nursing page uses recording and transcription.

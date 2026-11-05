@@ -1,22 +1,7 @@
-# Clone Status
+# Rajagiri upgrade status
 
-Prepared on 2026-10-14.
+The November 5, 2026 implementation adds Master Admin, centrally managed room assignments, eight department dashboards, scoped request access, nursing recording/transcription, repeating alerts and audit fields.
 
-## Completed
+Rajagiri configuration remains `care-companion-mumbai-20261014` in Mumbai. The separate Aster repository, Firebase project and data are not modified. Existing Rajagiri passwords and request records are preserved.
 
-- Copied the app source into a clean repository root.
-- Preserved GitHub Pages workflow, Firebase rules, functions, tests, and assets.
-- Created new Firebase project `care-companion-mumbai-20261014`.
-- Created Firestore Native database `(default)` in `care-companion-mumbai-20261014` with location `asia-south1`.
-- Deployed Firestore rules to the new project.
-- Created Firebase Web app `Care Companion Web`.
-- Updated `config.js` and `.firebaserc` so the clone points at the new Firebase project only.
-- Deleted the accidentally created `nam5` Firestore database from `care-companion-clone-20261014`.
-
-## Pending Account-Specific Work
-
-- Create a new GitHub repository.
-- Configure Firebase Auth users and Firestore `profiles` documents.
-- Store the Gemini API key in Secret Manager.
-- Configure `functions/.env` and deploy functions.
-- Enable GitHub Pages.
+See README.md for current setup and page behavior. Live deployment state must be checked rather than inferred from this file.

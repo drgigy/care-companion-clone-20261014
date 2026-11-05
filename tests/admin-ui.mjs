@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const nodes=new Map(),calls=[];
+const node=id=>{
+ if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',innerHTML:'',open:false,hidden:false,dataset:{},classList:{toggle(){}},addEventListener(){},focus(){},reset(){},replaceChildren(){this.innerHTML='';},showModal(){this.open=true;},close(){this.open=false;}});
+ return nodes.get(id);
+};
+const source=readFileSync(new URL('../master-admin.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
+const accounts=[{uid:'room',role:'room',room:'201',name:'Tablet',email:'room@example.test'},{uid:'nurse',role:'staff',room:'',name:'Nurse',email:'nurse@example.test'},{uid:'other',role:'staff',room:'',name:'Other team',email:'other@example.test'}];
+const client={call:async input=>{calls.push(input);return {users:input.action==='listRooms'?accounts.filter(u=>u.role==='room'):accounts,actor:{email:'admin@example.test'}};}};
+const context=vm.createContext({document:{getElementById:node},connectAdmin:async()=>{},crypto:{randomUUID:()=> 'test'},clientMock:client,accounts,confirm:()=>true});
+vm.runInContext(source,context);
+vm.runInContext("client=clientMock; users=accounts; render(); openAccount(accounts[2]);",context);
+assert.equal(node('user-role').value,'staff');
+assert.ok(node('account-rows').innerHTML.includes('Staff'));
+assert.ok(node('account-rows').innerHTML.includes('Assign rooms / tablets'));
+await vm.runInContext("openAssignments(accounts[2])",context);
+assert.ok(node('assign-options').innerHTML.includes('data-room-uid="room"'));
+assert.ok(!node('assign-options').innerHTML.includes('data-room-uid="nurse"'));
+assert.ok(!node('assign-options').innerHTML.includes('data-room-uid="other"'));
+vm.runInContext("selectedRoomUids=new Set(['room']);",context);
+await node('assign-form').onsubmit({preventDefault(){}});
+const save=calls.find(c=>c.action==='assignRooms');
+assert.deepEqual([...save.assignedRoomUids],['room']);
+assert.deepEqual([...save.assignedStaffUids],[]);
+console.log('Passed: staff account editing and room-only assignment controls.');
