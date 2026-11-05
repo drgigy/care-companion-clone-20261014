@@ -54,3 +54,13 @@ body.board-active{height:100dvh;min-height:0;display:grid;grid-template-rows:aut
 @media(max-width:900px){.board-active .board-header{grid-template-columns:1fr auto;gap:5px 10px}.board-active .header-title{grid-column:1/-1;grid-row:2;text-align:center}.board-active .header-title h1{font-size:20px}.board-active .header-title p{display:none}.board-active .account-actions{grid-column:2;grid-row:1;flex-direction:row;gap:8px}.board-active .brand-sub{display:none}.board-active .legend-item{font-size:11px;gap:5px;padding:6px}.board-active .legend-item b{font-size:19px}.board-active .room-tile .tile-status{font-size:clamp(10px,13cqh,16px)}}
 @media(max-width:600px){.board-active .room-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr));gap:4px}.board-active .room-tile{padding:3px 4px;gap:1px;border-radius:8px}.board-active .room-tile>strong{font-size:clamp(16px,34cqh,26px)}.board-active .room-tile .tile-status{font-size:clamp(9px,18cqh,12px);line-height:1.05}.board-active .room-tile>small{display:none}.board-active .legend{gap:4px}.board-active .legend-item{flex-direction:column;gap:2px;font-size:9px;padding:5px 3px;border-radius:8px}.board-active .legend-item b{font-size:18px}.board-active .board-note{font-size:9px}.board-active .board-footer{display:none}.board-active .account-actions span{display:none}.board-active .header-title h1{font-size:19px}}
 @media(max-height:600px) and (min-width:601px){.board-active .header-title p,.board-active .brand-sub{display:none}.board-active .board-header{padding-top:5px;padding-bottom:5px}.board-active .header-title h1{font-size:20px}.board-active .legend-item{padding:5px 7px;font-size:11px}.board-active .legend-item b{font-size:19px}.board-active .board-footer{display:none}.board-active .room-tile>strong{font-size:clamp(18px,28cqh,30px)}.board-active .room-tile .tile-status{font-size:clamp(10px,12cqh,14px)}.board-active .room-tile>small{font-size:8px}}
+
+/* Five reported statuses plus the unreported count; no explanatory text rows. */
+.dischargeTomorrow,.legend-item.dischargeTomorrow{background:#2b63bf;color:#fff;border-color:#214e98}
+.board-active #board{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:'warning' 'legend' 'rooms'}
+.legend,.board-active .legend{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media(max-width:600px){.board-active .legend{grid-template-columns:repeat(3,minmax(0,1fr))}.board-active .legend-item:last-child{grid-column:auto}}
+
+/* Unreported rooms default to white Ready for occupancy, as requested. */
+.legend,.board-active .legend{grid-template-columns:repeat(5,minmax(0,1fr))}
+.board-active .legend-item:last-child{grid-column:auto}

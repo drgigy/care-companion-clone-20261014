@@ -1,4 +1,4 @@
-import {allocationStatuses} from './nursing-drafts.js?v=room-allocation-20261105';
+import {allocationStatuses} from './nursing-drafts.js?v=discharge-tomorrow-20261105';
 import {assertLocalSafe} from './access.js';
 import {config} from './config.js';
 export const NURSING_SETTINGS_KEY='care-companion-nursing-settings-v1';

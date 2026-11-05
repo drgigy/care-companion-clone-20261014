@@ -3,7 +3,7 @@ import {createNursingRequestHandler} from '../functions/nursing.js';
 import {createTranscriptionHandler} from '../functions/transcription.js';
 import {accountInput} from '../functions/admin.js';
 import {allocationViewer} from '../room-allocation-store.js';
-import {nursingCategories,allocationRooms,validateRequests} from '../nursing-drafts.js';
+import {nursingCategories,allocationStatuses,allocationRooms,validateRequests} from '../nursing-drafts.js';
 import {categories} from '../shared.js';
 assert.equal(Object.keys(categories).length,8,'patient retains exactly eight categories');assert.ok(!categories.roomAllocation);assert.ok(nursingCategories.roomAllocation);assert.equal(allocationRooms.length,30);assert.equal(allocationRooms[0],'301');assert.equal(allocationRooms[29],'330');
 assert.ok(allocationViewer({role:'departmentAdmin',department:'roomAllocation'}));assert.ok(allocationViewer({role:'administrator'}));for(const p of [{role:'room'},{role:'staff'},{role:'departmentAdmin',department:'food'},{role:'departmentAdmin',department:'roomAllocation',disabled:true}])assert.ok(!allocationViewer(p));
@@ -34,3 +34,20 @@ records.set('profiles/nurse',{role:'staff',disabled:true});await assert.rejects(
 const extraction={room:'3066',category:'roomAllocation',summary:'Reports',patientLanguage:'english',transcript:'3066 awaiting discharge, 304 vacated, 306 occupied, 306 ready, 310 water and cleaning',requests:[allocate('3066','awaitingDischarge'),allocate('304','vacated'),allocate('306','occupied'),allocate('306','ready'),care('310','food','Water'),care('310','housekeeping','Cleaning')]};
 const transcribe=createTranscriptionHandler({...deps,transcribe:async()=>extraction});const parsed=await transcribe(req({audio:'AAAA',mimeType:'audio/wav'}));assert.equal(parsed.requests.length,6);assert.equal(parsed.requests[0].room,'3066','do not shorten an out-of-range dictated number');assert.equal(parsed.requests.filter(row=>row.room==='306').length,2,'preserve conflicting dictation for review');assert.equal(parsed.requests.filter(row=>row.room==='310').length,2);
 console.log('Passed: nursing-only ninth category, all 30 rooms, department read scope, mixed multi-room/multi-request batches, unrestricted ordinary care rooms, invalid/duplicate status rejection, atomic failures, retry deduplication and stale retry protection.');
+
+// The fifth status must survive transcription, review and the server write path.
+assert.equal(Object.keys(allocationStatuses).length,5);assert.equal(allocationStatuses.dischargeTomorrow,'Discharge tomorrow');
+const tomorrow={requestId:'batch-tomorrow-001',patientLanguage:'english',requests:[allocate('307','dischargeTomorrow'),allocate('308','awaitingDischarge')]};
+validateRequests(tomorrow.requests);await handler(req(tomorrow));assert.equal(records.get('roomAllocation/307').status,'dischargeTomorrow');assert.equal(records.get('roomAllocation/308').status,'awaitingDischarge');
+const extractedTomorrow=createTranscriptionHandler({...deps,transcribe:async()=>({room:'307',category:'roomAllocation',summary:'Discharge tomorrow',patientLanguage:'english',transcript:'307 tomorrow; 308 today',roomUpdates:tomorrow.requests,requests:tomorrow.requests})});
+const future=await extractedTomorrow(req({audio:'AAAA',mimeType:'audio/wav'}));assert.equal(future.requests[0].roomStatus,'dischargeTomorrow');assert.equal(future.roomUpdates[0].roomStatus,'dischargeTomorrow');assert.equal(future.requests[1].roomStatus,'awaitingDischarge');
+console.log('Passed: Discharge tomorrow is distinct from awaiting discharge in review, transcription and persisted status.');
+// Execute the board's actual projection without initializing browser authentication.
+const {readFileSync}=await import('node:fs');const vm=await import('node:vm');
+const boardSource=readFileSync('room-allocation.js','utf8');
+const projection=boardSource.slice(boardSource.indexOf('export function boardRooms('),boardSource.indexOf('\nfunction render(')).replace('export ','');
+const boardContext=vm.createContext({allocationRooms,allocationStatuses});vm.runInContext(projection,boardContext);
+const emptyBoard=vm.runInContext('boardRooms([])',boardContext);assert.equal(emptyBoard.length,30);assert.ok(emptyBoard.every(r=>r.status==='ready'),'unreported rooms use the requested white ready display default');
+boardContext.rows=[{room:'306',status:'dischargeTomorrow'},{room:'307',status:'awaitingDischarge'}];
+const displayed=vm.runInContext('boardRooms(rows)',boardContext);assert.equal(displayed.find(r=>r.room==='306').status,'dischargeTomorrow');assert.equal(displayed.find(r=>r.room==='307').status,'awaitingDischarge');assert.equal(displayed.filter(r=>r.status==='ready').length,28);
+console.log('Passed: all 30 missing reports default to white Ready while reported today/tomorrow statuses remain distinct.');

@@ -1,7 +1,7 @@
 import {HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
-export const roomStatuses=['occupied','awaitingDischarge','vacated','ready'];
-export const roomLabels={occupied:'Occupied',awaitingDischarge:'Awaiting discharge',vacated:'Vacated / awaiting cleaning',ready:'Ready for occupancy'};
+export const roomStatuses=['occupied','awaitingDischarge','vacated','ready','dischargeTomorrow'];
+export const roomLabels={occupied:'Occupied',awaitingDischarge:'Awaiting discharge',vacated:'Vacated / awaiting cleaning',ready:'Ready for occupancy',dischargeTomorrow:'Discharge tomorrow'};
 const fail=message=>{throw new HttpsError('invalid-argument',message);};
 export function allocationInput(data={}){
   if(data.category!=='roomAllocation')fail('Select Room Allocation.');
@@ -11,7 +11,7 @@ export function allocationInput(data={}){
   const updates=data.roomUpdates.map(value=>{
     const room=typeof value?.room==='string'?value.room.trim():'';
     if(!/^3(?:0[1-9]|[12][0-9]|30)$/.test(room))fail('Room Allocation accepts rooms 301–330 only. Correct the room number before sending.');
-    if(!roomStatuses.includes(value.roomStatus))fail('Select one of the four room statuses.');
+    if(!roomStatuses.includes(value.roomStatus))fail('Select one of the five room statuses.');
     if(seen.has(room))fail(`Room ${room} appears more than once. Keep one final status for that room.`);
     seen.add(room);return {room,roomStatus:value.roomStatus};
   }).sort((a,b)=>a.room.localeCompare(b.room));

@@ -1,6 +1,6 @@
 import {categories} from './shared.js';
 export const nursingCategories={...categories,roomAllocation:{label:'Room Allocation',icon:'▦'}};
-export const allocationStatuses={occupied:'Occupied',awaitingDischarge:'Awaiting discharge',vacated:'Vacated / awaiting cleaning',ready:'Ready for occupancy'};
+export const allocationStatuses={occupied:'Occupied',awaitingDischarge:'Awaiting discharge',vacated:'Vacated / awaiting cleaning',ready:'Ready for occupancy',dischargeTomorrow:'Discharge tomorrow'};
 export const allocationRooms=Array.from({length:30},(_,i)=>String(301+i));
 export function validateRequests(items){
   if(!Array.isArray(items)||!items.length||items.length>30)throw Error('Review between 1 and 30 requests.');

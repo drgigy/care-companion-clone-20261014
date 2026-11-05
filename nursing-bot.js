@@ -1,7 +1,7 @@
-import {statuses,$,toast,escapeHTML} from './shared.js?v=room-allocation-20261105';
-import {NursingStore,loadNursingSettings,saveNursingSettings} from './nursing-store.js?v=room-allocation-20261105';
-import {NursingRecorder,audioPayload,validateDraft} from './nursing-recorder.js?v=room-allocation-20261105';
-import {nursingCategories as categories,allocationStatuses,validateRequests} from './nursing-drafts.js?v=room-allocation-20261105';
+import {statuses,$,toast,escapeHTML} from './shared.js?v=discharge-tomorrow-20261105';
+import {NursingStore,loadNursingSettings,saveNursingSettings} from './nursing-store.js?v=discharge-tomorrow-20261105';
+import {NursingRecorder,audioPayload,validateDraft} from './nursing-recorder.js?v=discharge-tomorrow-20261105';
+import {nursingCategories as categories,allocationStatuses,validateRequests} from './nursing-drafts.js?v=discharge-tomorrow-20261105';
 let draftRows=[];
 const store=new NursingStore();let settings=loadNursingSettings(),live=null,active=false,starting=false,attempt=0,draftId=null,sendBusy=false,pendingAudio=null,sendPayload=null;
 function clock(){const now=new Date(),h=now.getHours(),start=Number(settings.nightStart),end=Number(settings.nightEnd),night=settings.display==='night'||(settings.display==='auto'&&(start<end?h>=start&&h<end:h>=start||h<end));document.body.dataset.theme=night?'night':'day';const time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});$('patient-time').textContent=time.replace(/\s?[AP]M$/i,'');$('patient-period').textContent=time.match(/AM|PM/)?.[0]||'';$('patient-date').textContent=now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});}
